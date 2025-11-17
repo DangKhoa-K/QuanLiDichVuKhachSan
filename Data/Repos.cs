@@ -10,17 +10,68 @@ namespace QuanLiDichVuKhachSan.Data
 {
     public static class RoomRepo
     {
-        public static DataTable List() =>
-            Db.GetTable("SELECT PhongId, SoPhong, GhiChu FROM PHONG ORDER BY SoPhong", CommandType.Text);
+        // Room status constants
+        public static readonly string[] ROOM_STATUSES = new string[] 
+        { 
+            "Trống",        // 0
+            "Đang ở",       // 1
+            "Giữ chỗ",      // 2
+            "Sắp trả",      // 3
+            "Phòng sạch",   // 4
+            "Phòng bẩn",    // 5
+            "Đang sửa"      // 6
+        };
 
+        public static DataTable List()
+        {
+            // Safe query: if TrangThai column doesn't exist, return 0 as default
+            string sql = @"
+                SELECT PhongId, SoPhong, GhiChu,
+                       CASE WHEN COL_LENGTH('PHONG', 'TrangThai') IS NOT NULL 
+                            THEN TrangThai 
+                            ELSE 0 
+                       END AS TrangThai
+                FROM PHONG 
+                ORDER BY SoPhong";
+            return Db.GetTable(sql, CommandType.Text);
+        }
+
+        // Original Add method - kept for backward compatibility
         public static void Add(string soPhong, string ghiChu) =>
-            Db.Exec("INSERT PHONG(SoPhong,GhiChu) VALUES(@p,@g)", CommandType.Text,
-                new SqlParameter("@p", soPhong), new SqlParameter("@g", (object?)ghiChu ?? DBNull.Value));
+            Add(soPhong, ghiChu, 0);
 
+        // New Add method with TrangThai parameter
+        public static void Add(string soPhong, string ghiChu, int trangThai)
+        {
+            string sql = @"
+                IF COL_LENGTH('PHONG', 'TrangThai') IS NOT NULL
+                    INSERT PHONG(SoPhong, GhiChu, TrangThai) VALUES(@p, @g, @t)
+                ELSE
+                    INSERT PHONG(SoPhong, GhiChu) VALUES(@p, @g)";
+            Db.Exec(sql, CommandType.Text,
+                new SqlParameter("@p", soPhong),
+                new SqlParameter("@g", (object?)ghiChu ?? DBNull.Value),
+                new SqlParameter("@t", trangThai));
+        }
+
+        // Original Update method - kept for backward compatibility
         public static void Update(int id, string soPhong, string ghiChu) =>
-            Db.Exec("UPDATE PHONG SET SoPhong=@p, GhiChu=@g WHERE PhongId=@id", CommandType.Text,
-                new SqlParameter("@p", soPhong), new SqlParameter("@g", (object?)ghiChu ?? DBNull.Value),
+            Update(id, soPhong, ghiChu, 0);
+
+        // New Update method with TrangThai parameter
+        public static void Update(int id, string soPhong, string ghiChu, int trangThai)
+        {
+            string sql = @"
+                IF COL_LENGTH('PHONG', 'TrangThai') IS NOT NULL
+                    UPDATE PHONG SET SoPhong=@p, GhiChu=@g, TrangThai=@t WHERE PhongId=@id
+                ELSE
+                    UPDATE PHONG SET SoPhong=@p, GhiChu=@g WHERE PhongId=@id";
+            Db.Exec(sql, CommandType.Text,
+                new SqlParameter("@p", soPhong),
+                new SqlParameter("@g", (object?)ghiChu ?? DBNull.Value),
+                new SqlParameter("@t", trangThai),
                 new SqlParameter("@id", id));
+        }
 
         public static void Delete(int id) =>
             Db.Exec("DELETE PHONG WHERE PhongId=@id", CommandType.Text, new SqlParameter("@id", id));

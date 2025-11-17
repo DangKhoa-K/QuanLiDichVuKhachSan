@@ -10,6 +10,7 @@ namespace QuanLiDichVuKhachSan.Controls
     {
         public int RoomId { get; set; }
         private RoomStatus _status;
+        private Color _borderColor = Color.Silver;
 
         public RoomTile()
         {
@@ -19,9 +20,22 @@ namespace QuanLiDichVuKhachSan.Controls
                           ControlStyles.UserPaint, true);
             this.UpdateStyles();
 
+            // Hook Paint event once
+            this.card.Paint += Card_Paint;
+
             this.card.Click += Bubble; this.lblRoom.Click += Bubble;
             this.lblSub.Click += Bubble; this.lblStatus.Click += Bubble;
         }
+        
+        private void Card_Paint(object sender, PaintEventArgs e)
+        {
+            ControlPaint.DrawBorder(e.Graphics, this.card.ClientRectangle,
+                _borderColor, 1, ButtonBorderStyle.Solid,
+                _borderColor, 1, ButtonBorderStyle.Solid,
+                _borderColor, 1, ButtonBorderStyle.Solid,
+                _borderColor, 1, ButtonBorderStyle.Solid);
+        }
+
         private void Bubble(object s, EventArgs e) { this.OnClick(e); }
 
         public string RoomNumber { get { return lblRoom.Text; } set { lblRoom.Text = value; } }
@@ -50,14 +64,8 @@ namespace QuanLiDichVuKhachSan.Controls
             }
             this.card.BackColor = bg;
             this.lblStatus.Text = txt;
-            this.card.Paint += delegate (object s, PaintEventArgs e)
-            {
-                ControlPaint.DrawBorder(e.Graphics, this.card.ClientRectangle,
-                    border, 1, ButtonBorderStyle.Solid,
-                    border, 1, ButtonBorderStyle.Solid,
-                    border, 1, ButtonBorderStyle.Solid,
-                    border, 1, ButtonBorderStyle.Solid);
-            };
+            _borderColor = border;
+            this.card.Invalidate(); // Trigger repaint
         }
     }
 }

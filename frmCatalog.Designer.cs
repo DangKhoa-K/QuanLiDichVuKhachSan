@@ -26,6 +26,8 @@ namespace QuanLiDichVuKhachSan
             this.txtRoomId = new System.Windows.Forms.TextBox();
             this.lblRoomNumber = new System.Windows.Forms.Label();
             this.txtRoomNumber = new System.Windows.Forms.TextBox();
+            this.lblRoomStatus = new System.Windows.Forms.Label();
+            this.cboRoomStatus = new System.Windows.Forms.ComboBox();
             this.lblRoomNote = new System.Windows.Forms.Label();
             this.txtRoomNote = new System.Windows.Forms.TextBox();
             this.flowRoomButtons = new System.Windows.Forms.FlowLayoutPanel();
@@ -119,7 +121,8 @@ namespace QuanLiDichVuKhachSan
             this.tlpRoom.ColumnCount = 2;
             this.tlpRoom.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
             this.tlpRoom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            this.tlpRoom.RowCount = 4;
+            this.tlpRoom.RowCount = 5;
+            this.tlpRoom.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
             this.tlpRoom.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
             this.tlpRoom.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
             this.tlpRoom.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
@@ -129,6 +132,8 @@ namespace QuanLiDichVuKhachSan
             this.txtRoomId.ReadOnly = true; this.txtRoomId.Dock = DockStyle.Fill;
             this.lblRoomNumber.Text = "Số phòng:"; this.lblRoomNumber.Dock = DockStyle.Fill; this.lblRoomNumber.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.txtRoomNumber.Dock = DockStyle.Fill;
+            this.lblRoomStatus.Text = "Trạng thái:"; this.lblRoomStatus.Dock = DockStyle.Fill; this.lblRoomStatus.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.cboRoomStatus.Dock = DockStyle.Fill; this.cboRoomStatus.DropDownStyle = ComboBoxStyle.DropDownList;
             this.lblRoomNote.Text = "Ghi chú:"; this.lblRoomNote.Dock = DockStyle.Fill; this.lblRoomNote.TextAlign = System.Drawing.ContentAlignment.TopRight;
             this.txtRoomNote.Multiline = true; this.txtRoomNote.Dock = DockStyle.Fill;
 
@@ -147,9 +152,11 @@ namespace QuanLiDichVuKhachSan
             this.tlpRoom.Controls.Add(this.txtRoomId, 1, 0);
             this.tlpRoom.Controls.Add(this.lblRoomNumber, 0, 1);
             this.tlpRoom.Controls.Add(this.txtRoomNumber, 1, 1);
-            this.tlpRoom.Controls.Add(this.lblRoomNote, 0, 2);
-            this.tlpRoom.Controls.Add(this.txtRoomNote, 1, 2);
-            this.tlpRoom.Controls.Add(this.flowRoomButtons, 1, 3);
+            this.tlpRoom.Controls.Add(this.lblRoomStatus, 0, 2);
+            this.tlpRoom.Controls.Add(this.cboRoomStatus, 1, 2);
+            this.tlpRoom.Controls.Add(this.lblRoomNote, 0, 3);
+            this.tlpRoom.Controls.Add(this.txtRoomNote, 1, 3);
+            this.tlpRoom.Controls.Add(this.flowRoomButtons, 1, 4);
 
             // ---------------- CUSTOMERS LAYOUT ----------------
             this.tabCustomers.Text = "Khách hàng";
@@ -304,6 +311,8 @@ namespace QuanLiDichVuKhachSan
         private System.Windows.Forms.TextBox txtRoomId;
         private System.Windows.Forms.Label lblRoomNumber;
         private System.Windows.Forms.TextBox txtRoomNumber;
+        private System.Windows.Forms.Label lblRoomStatus;
+        private System.Windows.Forms.ComboBox cboRoomStatus;
         private System.Windows.Forms.Label lblRoomNote;
         private System.Windows.Forms.TextBox txtRoomNote;
         private System.Windows.Forms.FlowLayoutPanel flowRoomButtons;

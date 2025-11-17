@@ -40,6 +40,11 @@ namespace QuanLiDichVuKhachSan
 
         private void frmMain_Load(object s, EventArgs e)
         {
+            // Enable DoubleBuffered for FlowLayoutPanel to reduce flicker
+            typeof(Control).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.SetProperty,
+                null, rbFlow, new object[] { true });
+
             // Sidebar: đặt khoảng chia + fit nút sau khi form đo xong
             this.BeginInvoke(new Action(() => { ApplySplitterForSidebar(); ResizeNavButtons(); }));
             this.Resize += (sender, e2) => { ApplySplitterForSidebar(); ResizeNavButtons(); };
@@ -67,13 +72,9 @@ namespace QuanLiDichVuKhachSan
         {
             rbCboStatus.Items.Clear();
             rbCboStatus.Items.Add("Tất cả");
-            rbCboStatus.Items.Add("Trống");
-            rbCboStatus.Items.Add("Đang ở");
-            rbCboStatus.Items.Add("Giữ chỗ");
-            rbCboStatus.Items.Add("Sắp trả");
-            rbCboStatus.Items.Add("Phòng sạch");
-            rbCboStatus.Items.Add("Phòng bẩn");
-            rbCboStatus.Items.Add("Đang sửa");
+            // Populate from RoomRepo constant
+            foreach (string status in RoomRepo.ROOM_STATUSES)
+                rbCboStatus.Items.Add(status);
             rbCboStatus.SelectedIndex = 0;
 
             rbBtnReload.Click += delegate { LoadRoomBoard(); };
@@ -83,27 +84,35 @@ namespace QuanLiDichVuKhachSan
 
         private void LoadRoomBoard()
         {
-            // Lấy danh sách phòng (cần cột PhongId, SoPhong)
+            // Lấy danh sách phòng với trạng thái thực từ database
             _rbRooms = RoomRepo.List();
             if (_rbRooms == null) return;
 
-            // Nếu chưa có cột trạng thái demo -> thêm để tô màu
+            // Nếu chưa có cột TrangThaiText -> thêm để map từ numeric sang text
             if (!_rbRooms.Columns.Contains("TrangThaiText"))
                 _rbRooms.Columns.Add("TrangThaiText", typeof(string));
 
-            // Demo trạng thái (bạn thay bằng dữ liệu thực nếu có)
+            // Map trạng thái từ numeric sang text
             for (int i = 0; i < _rbRooms.Rows.Count; i++)
             {
-                string st = "Trống";
-                if (i % 7 == 1) st = "Đang ở";
-                else if (i % 7 == 2) st = "Giữ chỗ";
-                else if (i % 7 == 3) st = "Sắp trả";
-                else if (i % 7 == 4) st = "Phòng sạch";
-                else if (i % 7 == 5) st = "Phòng bẩn";
-                else if (i % 7 == 6) st = "Đang sửa";
-                _rbRooms.Rows[i]["TrangThaiText"] = st;
+                object statusObj = _rbRooms.Rows[i]["TrangThai"];
+                int statusIndex = 0;
+                if (statusObj != null && int.TryParse(statusObj.ToString(), out int st))
+                    statusIndex = st;
+                
+                // Map to status text
+                if (statusIndex >= 0 && statusIndex < RoomRepo.ROOM_STATUSES.Length)
+                    _rbRooms.Rows[i]["TrangThaiText"] = RoomRepo.ROOM_STATUSES[statusIndex];
+                else
+                    _rbRooms.Rows[i]["TrangThaiText"] = RoomRepo.ROOM_STATUSES[0]; // Default: Trống
             }
             RenderRoomTiles(_rbRooms);
+        }
+
+        // Public method to refresh room board from external forms (e.g., frmCatalog)
+        public void RefreshRoomBoard()
+        {
+            LoadRoomBoard();
         }
 
         private void RenderRoomTiles(DataTable dt)

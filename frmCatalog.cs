@@ -12,6 +12,8 @@ namespace QuanLiDichVuKhachSan
         {
             InitializeComponent();
             this.Load += frmCatalog_Load;
+            this.KeyPreview = true;
+            this.KeyDown += frmCatalog_KeyDown;
 
             // hook events (Rooms)
             dgvRooms.SelectionChanged += dgvRooms_SelectionChanged;
@@ -35,11 +37,28 @@ namespace QuanLiDichVuKhachSan
             btnSvDelete.Click += btnSvDelete_Click;
         }
 
+        private void frmCatalog_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Handle keyboard shortcuts
+            if (e.Control && e.KeyCode == Keys.N) { ClearRoomInputs(); e.Handled = true; }
+            else if (e.Control && e.KeyCode == Keys.A) { btnRoomAdd_Click(sender, e); e.Handled = true; }
+            else if (e.Control && e.KeyCode == Keys.U) { btnRoomUpdate_Click(sender, e); e.Handled = true; }
+            else if (e.KeyCode == Keys.Delete) { btnRoomDelete_Click(sender, e); e.Handled = true; }
+            else if (e.KeyCode == Keys.F5) { ReloadRooms(); e.Handled = true; }
+        }
+
         private void frmCatalog_Load(object sender, EventArgs e)
         {
             StyleGrid(dgvRooms);
             StyleGrid(dgvCustomers);
             StyleGrid(dgvServices);
+
+            // Load room status options
+            cboRoomStatus.Items.Clear();
+            foreach (string status in RoomRepo.ROOM_STATUSES)
+                cboRoomStatus.Items.Add(status);
+            if (cboRoomStatus.Items.Count > 0)
+                cboRoomStatus.SelectedIndex = 0;
 
             ReloadRooms();
             ReloadCustomers();
@@ -57,6 +76,11 @@ namespace QuanLiDichVuKhachSan
             g.AutoGenerateColumns = true;
             g.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             g.EnableHeadersVisualStyles = false;
+
+            // Enable DoubleBuffered for better performance
+            typeof(DataGridView).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.SetProperty,
+                null, g, new object[] { true });
 
             g.Font = new Font("Segoe UI", 10f);
             g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
@@ -84,6 +108,7 @@ namespace QuanLiDichVuKhachSan
             if (dgvRooms.Columns["PhongId"] != null) dgvRooms.Columns["PhongId"].HeaderText = "ID";
             if (dgvRooms.Columns["SoPhong"] != null) dgvRooms.Columns["SoPhong"].HeaderText = "Số phòng";
             if (dgvRooms.Columns["GhiChu"] != null) dgvRooms.Columns["GhiChu"].HeaderText = "Ghi chú";
+            if (dgvRooms.Columns["TrangThai"] != null) dgvRooms.Columns["TrangThai"].HeaderText = "Trạng thái";
             ClearRoomInputs();
         }
         private void ClearRoomInputs()
@@ -91,6 +116,8 @@ namespace QuanLiDichVuKhachSan
             txtRoomId.Text = "";
             txtRoomNumber.Text = "";
             txtRoomNote.Text = "";
+            if (cboRoomStatus.Items.Count > 0)
+                cboRoomStatus.SelectedIndex = 0;
             if (dgvRooms.Rows.Count > 0) dgvRooms.ClearSelection();
             txtRoomNumber.Focus();
         }
@@ -100,13 +127,25 @@ namespace QuanLiDichVuKhachSan
             txtRoomId.Text = Convert.ToString(Cell(dgvRooms, dgvRooms.CurrentRow, "PhongId"));
             txtRoomNumber.Text = Convert.ToString(Cell(dgvRooms, dgvRooms.CurrentRow, "SoPhong"));
             txtRoomNote.Text = Convert.ToString(Cell(dgvRooms, dgvRooms.CurrentRow, "GhiChu"));
+            
+            // Synchronize status ComboBox
+            object statusObj = Cell(dgvRooms, dgvRooms.CurrentRow, "TrangThai");
+            int statusIndex = 0;
+            if (statusObj != null && int.TryParse(statusObj.ToString(), out int st))
+            {
+                if (st >= 0 && st < cboRoomStatus.Items.Count)
+                    statusIndex = st;
+            }
+            cboRoomStatus.SelectedIndex = statusIndex;
         }
         private void btnRoomAdd_Click(object sender, EventArgs e)
         {
             string so = (txtRoomNumber.Text ?? "").Trim();
             if (so.Length == 0) { MessageBox.Show("Nhập số phòng."); txtRoomNumber.Focus(); return; }
-            RoomRepo.Add(so, (txtRoomNote.Text ?? "").Trim());
+            int trangThai = cboRoomStatus.SelectedIndex >= 0 ? cboRoomStatus.SelectedIndex : 0;
+            RoomRepo.Add(so, (txtRoomNote.Text ?? "").Trim(), trangThai);
             ReloadRooms();
+            RefreshMainRoomBoard();
             if (dgvRooms.Rows.Count > 0)
             {
                 var r = dgvRooms.Rows[dgvRooms.Rows.Count - 1];
@@ -118,8 +157,10 @@ namespace QuanLiDichVuKhachSan
             int id = ToInt(txtRoomId.Text); if (id <= 0) { MessageBox.Show("Chưa chọn phòng."); return; }
             string so = (txtRoomNumber.Text ?? "").Trim();
             if (so.Length == 0) { MessageBox.Show("Nhập số phòng."); txtRoomNumber.Focus(); return; }
-            RoomRepo.Update(id, so, (txtRoomNote.Text ?? "").Trim());
+            int trangThai = cboRoomStatus.SelectedIndex >= 0 ? cboRoomStatus.SelectedIndex : 0;
+            RoomRepo.Update(id, so, (txtRoomNote.Text ?? "").Trim(), trangThai);
             ReloadRooms();
+            RefreshMainRoomBoard();
         }
         private void btnRoomDelete_Click(object sender, EventArgs e)
         {
@@ -128,6 +169,20 @@ namespace QuanLiDichVuKhachSan
             {
                 RoomRepo.Delete(id);
                 ReloadRooms();
+                RefreshMainRoomBoard();
+            }
+        }
+
+        // Helper to refresh frmMain's room board after CRUD operations
+        private void RefreshMainRoomBoard()
+        {
+            foreach (Form f in Application.OpenForms)
+            {
+                if (f is frmMain mainForm)
+                {
+                    mainForm.RefreshRoomBoard();
+                    break;
+                }
             }
         }
 
